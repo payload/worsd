@@ -1,4 +1,4 @@
-use iced::{executor, text_input, Application, Column, Command, Length, Settings, Text, TextInput};
+use iced::{executor, text_input, Application, Column, Command, Length, Settings, Text, TextInput, HorizontalAlignment};
 
 fn main() -> Result<(), std::io::Error> {
     if let Err(err) = State::run(Settings::default()) {
@@ -99,6 +99,9 @@ impl State {
 
         let entered_words = self.entered_words.iter().map(|word| {
             Text::new(word.clone())
+                .width(Length::Fill)
+                .size(30)
+                .horizontal_alignment(HorizontalAlignment::Center)
         });
 
         let mut column = Column::new().push(title);
@@ -120,6 +123,9 @@ impl State {
                 if self.words.contains(&self.input_word) {
                     println!("{} is a valid word.", &self.input_word);
                     self.entered_words.push(self.input_word.clone());
+                    if self.input_word == self.target_word {
+                        println!("{} is the correct word!", &self.input_word);
+                    }
                     self.input_word = String::new();
                 } else {
                     println!("{} is an invalid word!", &self.input_word);
