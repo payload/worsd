@@ -1,4 +1,4 @@
-use iced::{executor, text_input, Application, Column, Command, Length, Settings, Text, TextInput, HorizontalAlignment};
+use iced::{executor, text_input, Application, Column, Command, Length, Settings, Text, TextInput, HorizontalAlignment, Row, Element, Align, Color};
 
 fn main() -> Result<(), std::io::Error> {
     if let Err(err) = State::run(Settings::default()) {
@@ -34,7 +34,7 @@ impl Application for State {
         (
             Self {
                 words,
-                entered_words: Vec::new(),
+                entered_words: vec!["shall".to_string()],
                 input_word_state: text_input::State::default(),
                 input_word: String::new(),
                 target_word,
@@ -98,13 +98,34 @@ impl State {
             .size(30);
 
         let entered_words = self.entered_words.iter().map(|word| {
-            Text::new(word.clone())
-                .width(Length::Fill)
-                .size(30)
-                .horizontal_alignment(HorizontalAlignment::Center)
+            let target = self.target_word.chars().collect::<Vec<char>>();
+
+            let mut row = Row::<Message>::new()
+                .width(Length::Shrink)
+                .align_items(Align::Center);
+            
+            for (pos, char) in word.chars().enumerate() {
+                let mut char_text = Text::new(char).size(30);
+
+                if Some(&char) == target.get(pos) {
+                    char_text = char_text.color(Color::from_rgb(0.0, 0.6, 0.0));
+                } else if target.contains(&char) {
+                    char_text = char_text.color(Color::from_rgb(0.7, 0.6, 0.0));
+                } else {
+                    char_text = char_text.color(Color::from_rgb(0.5, 0.5, 0.5));
+                }
+
+                row = row.push(char_text);
+            }
+
+            // Text::new(word.clone())
+            //     .width(Length::Fill)
+            //     .size(30)
+            //     .horizontal_alignment(HorizontalAlignment::Center)
+            row
         });
 
-        let mut column = Column::new().push(title);
+        let mut column = Column::<Message>::new().push(title).align_items(Align::Center);
         for entry in entered_words {
             column = column.push(entry);
         }
