@@ -1,4 +1,7 @@
-use iced::{executor, text_input, Application, Column, Command, Length, Settings, Text, TextInput, HorizontalAlignment, Row, Element, Align, Color};
+use iced::{
+    executor, text_input, Align, Application, Color, Column, Command, Length, Row, Settings, Text,
+    TextInput,
+};
 
 fn main() -> Result<(), std::io::Error> {
     if let Err(err) = State::run(Settings::default()) {
@@ -75,6 +78,12 @@ enum Message {
     NewWordSubmit,
 }
 
+enum Found {
+    Correct,
+    Almost,
+    No,
+}
+
 impl State {
     fn view(&mut self) -> Column<Message> {
         let title = Text::new("worsd")
@@ -98,41 +107,60 @@ impl State {
             .size(30);
 
         let entered_words = self.entered_words.iter().map(|word| {
-            let target = self.target_word.chars().collect::<Vec<char>>();
+            // target is like a scratchpad. when we found a char, check it off by overwriting it with ' '.
+            let word = word.chars().collect::<Vec<char>>();
+            let mut target = self.target_word.chars().collect::<Vec<char>>();
+            let mut corrects = Vec::new();
+            let mut almosts = Vec::new();
 
             let mut row = Row::<Message>::new()
                 .width(Length::Shrink)
                 .align_items(Align::Center);
-            
-            for (pos, char) in word.chars().enumerate() {
-                let mut char_text = Text::new(char).size(30);
 
-                if Some(&char) == target.get(pos) {
-                    char_text = char_text.color(Color::from_rgb(0.0, 0.6, 0.0));
-                } else if target.contains(&char) {
-                    char_text = char_text.color(Color::from_rgb(0.7, 0.6, 0.0));
-                } else {
-                    char_text = char_text.color(Color::from_rgb(0.5, 0.5, 0.5));
+            for (pos, char) in word.iter().enumerate() {
+                if Some(char) == target.get(pos) {
+                    corrects.push(pos);
+                    *target.get_mut(pos).unwrap() = ' ';
                 }
+            }
+            for (pos, char) in word.iter().enumerate() {
+                if corrects.contains(&pos) {
+                    continue;
+                }
+                if let Some(target_pos) = target.iter().position(|c| c == char) {
+                    *target.get_mut(target_pos).unwrap() = ' ';
+                    almosts.push(pos);
+                }
+            }
+
+            for (pos, char) in word.into_iter().enumerate() {
+                let found = if corrects.contains(&pos) {
+                    Found::Correct
+                } else if almosts.contains(&pos) {
+                    Found::Almost
+                } else {
+                    Found::No
+                };
+
+                let char_text = Text::new(char).size(30);
+                let char_text = match found {
+                    Found::Correct => char_text.color(Color::from_rgb(0.0, 0.6, 0.0)),
+                    Found::Almost => char_text.color(Color::from_rgb(0.7, 0.6, 0.0)),
+                    Found::No => char_text.color(Color::from_rgb(0.5, 0.5, 0.5)),
+                };
 
                 row = row.push(char_text);
             }
-
-            // Text::new(word.clone())
-            //     .width(Length::Fill)
-            //     .size(30)
-            //     .horizontal_alignment(HorizontalAlignment::Center)
             row
         });
 
-        let mut column = Column::<Message>::new().push(title).align_items(Align::Center);
+        let mut column = Column::<Message>::new()
+            .push(title)
+            .align_items(Align::Center);
         for entry in entered_words {
             column = column.push(entry);
         }
-        column
-            .push(input_word)
-            .push(target_word)
-            .spacing(20)
+        column.push(input_word).push(target_word).spacing(20)
     }
 
     fn update(&mut self, message: Message) {
