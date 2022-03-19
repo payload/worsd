@@ -1,6 +1,6 @@
 use iced::{
-    executor, text_input, Align, Application, Color, Column, Command, Length, Row, Settings, Text,
-    TextInput,
+    container::Style, executor, text_input, Align, Application, Background, Color, Column, Command,
+    Container, Length, Row, Settings, Text, TextInput,
 };
 
 fn main() -> Result<(), std::io::Error> {
@@ -141,15 +141,19 @@ impl State {
                 } else {
                     Found::No
                 };
-
-                let char_text = Text::new(char).size(30);
-                let char_text = match found {
-                    Found::Correct => char_text.color(Color::from_rgb(0.0, 0.6, 0.0)),
-                    Found::Almost => char_text.color(Color::from_rgb(0.7, 0.6, 0.0)),
-                    Found::No => char_text.color(Color::from_rgb(0.5, 0.5, 0.5)),
+                let color = match found {
+                    Found::Correct => (Color::from_rgb(0.0, 0.6, 0.0)),
+                    Found::Almost => (Color::from_rgb(0.7, 0.6, 0.0)),
+                    Found::No => (Color::from_rgb(0.5, 0.5, 0.5)),
                 };
 
-                row = row.push(char_text);
+                let char_text = Text::new(char).size(30);
+                let container = Container::new(char_text)
+                    .height(Length::Shrink)
+                    .width(Length::Shrink)
+                    .padding(5);
+
+                row = row.push(container);
             }
             row
         });
