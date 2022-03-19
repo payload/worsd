@@ -1,7 +1,9 @@
 use iced::{
-    container::Style, executor, text_input, Align, Application, Background, Color, Column, Command,
+    container, executor, text_input, Align, Application, Background, Color, Column, Command,
     Container, Length, Row, Settings, Text, TextInput,
 };
+
+use rand::prelude::*;
 
 fn main() -> Result<(), std::io::Error> {
     if let Err(err) = State::run(Settings::default()) {
@@ -28,8 +30,9 @@ impl Application for State {
             Vec::new()
         };
 
-        let target_word = if let Some(word) = words.get(12000) {
-            word.clone()
+        let target_word = if words.len() > 0 {
+            let target_index = rand::thread_rng().gen_range(0..words.len());
+            words.get(target_index).unwrap().clone()
         } else {
             "worsd".to_string()
         };
@@ -37,7 +40,7 @@ impl Application for State {
         (
             Self {
                 words,
-                entered_words: vec!["shall".to_string()],
+                entered_words: vec![],
                 input_word_state: text_input::State::default(),
                 input_word: String::new(),
                 target_word,
@@ -84,6 +87,28 @@ enum Found {
     No,
 }
 
+enum CharStyle {
+    Correct,
+    Almost,
+    No,
+}
+
+impl container::StyleSheet for CharStyle {
+    fn style(&self) -> container::Style {
+        container::Style {
+            background: Some(Background::Color(match self {
+                // Wikipedia: Shades of Green / Yellow / ...
+                CharStyle::Correct => Color::from_rgb8(50, 205, 50), // Lime Green
+                CharStyle::Almost => Color::from_rgb8(250, 218, 94), // Royal Yellow
+                CharStyle::No => Color::from_rgb8(192, 192, 192),    // Silver
+            })),
+            border_radius: 12.0,
+            text_color: Some(Color::BLACK),
+            ..container::Style::default()
+        }
+    }
+}
+
 impl State {
     fn view(&mut self) -> Column<Message> {
         let title = Text::new("worsd")
@@ -115,6 +140,7 @@ impl State {
 
             let mut row = Row::<Message>::new()
                 .width(Length::Shrink)
+                .spacing(15)
                 .align_items(Align::Center);
 
             for (pos, char) in word.iter().enumerate() {
@@ -141,17 +167,19 @@ impl State {
                 } else {
                     Found::No
                 };
-                let color = match found {
-                    Found::Correct => (Color::from_rgb(0.0, 0.6, 0.0)),
-                    Found::Almost => (Color::from_rgb(0.7, 0.6, 0.0)),
-                    Found::No => (Color::from_rgb(0.5, 0.5, 0.5)),
+                let style = match found {
+                    Found::Correct => CharStyle::Correct,
+                    Found::Almost => CharStyle::Almost,
+                    Found::No => CharStyle::No,
                 };
 
                 let char_text = Text::new(char).size(30);
                 let container = Container::new(char_text)
-                    .height(Length::Shrink)
-                    .width(Length::Shrink)
-                    .padding(5);
+                    .height(Length::Units(60))
+                    .width(Length::Units(60))
+                    .center_x()
+                    .center_y()
+                    .style(style);
 
                 row = row.push(container);
             }
