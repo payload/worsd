@@ -99,7 +99,7 @@ enum CharStyle {
 
 impl container::StyleSheet for CharStyle {
     fn style(&self) -> container::Style {
-        let COLOR_GAINSBORO = Color::from_rgb8(220, 220, 220);
+        let color_gainsboro = Color::from_rgb8(220, 220, 220);
 
         container::Style {
             background: Some(Background::Color(match self {
@@ -107,7 +107,7 @@ impl container::StyleSheet for CharStyle {
                 CharStyle::Correct => Color::from_rgb8(50, 205, 50), // Lime Green
                 CharStyle::Almost => Color::from_rgb8(250, 218, 94), // Royal Yellow
                 CharStyle::No => Color::from_rgb8(192, 192, 192),    // Silver
-                CharStyle::Unknown => COLOR_GAINSBORO,
+                CharStyle::Unknown => color_gainsboro,
             })),
             border_radius: 12.0,
             text_color: Some(Color::BLACK),
@@ -133,12 +133,12 @@ impl State {
         .size(30)
         .on_submit(Message::NewWordSubmit);
 
-        let COLOR_GAINSBORO = Color::from_rgb8(220, 220, 220);
+        let color_gainsboro = Color::from_rgb8(220, 220, 220);
 
         let target_word = Text::new(self.target_word.clone())
             .horizontal_alignment(iced::HorizontalAlignment::Center)
             .width(iced::Length::Fill)
-            .color(COLOR_GAINSBORO)
+            .color(color_gainsboro)
             .size(20);
 
         let mut keyboard: HashMap<char, Found> = HashMap::new();
@@ -218,7 +218,7 @@ impl State {
         let row2 = "asdfghjkl";
         let row3 = "zxcvbnm";
         let create_key_row = |row_str: &str| {
-            let mut row = Row::new();
+            let mut row = Row::new().spacing(5);
             for char in row_str.chars() {
                 let style = match keyboard.get(&char) {
                     Some(Found::Correct) => CharStyle::Correct,
@@ -238,6 +238,12 @@ impl State {
             }
             row
         };
+        let keyboard = Column::new()
+            .align_items(Align::Center)
+            .spacing(5)
+            .push(create_key_row(row1))
+            .push(create_key_row(row2))
+            .push(create_key_row(row3));
 
         let mut column = Column::<Message>::new()
             .push(title)
@@ -249,9 +255,7 @@ impl State {
         column
             .push(input_word)
             .push(target_word)
-            .push(create_key_row(row1))
-            .push(create_key_row(row2))
-            .push(create_key_row(row3))
+            .push(keyboard)
     }
 
     fn update(&mut self, message: Message) {
