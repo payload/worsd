@@ -151,13 +151,17 @@ impl State {
             .center_y()
     }
 
-    fn word_box(char: char, style: CharStyle) -> Container<'static, Message> {
+    fn word_character_box(char: char, found: Found) -> Container<'static, Message> {
         Container::new(Text::new(char).size(30))
             .height(Length::Units(60))
             .width(Length::Units(60))
             .center_x()
             .center_y()
-            .style(style)
+            .style(match found {
+                Found::Correct => CharStyle::Correct,
+                Found::Almost => CharStyle::Almost,
+                Found::No => CharStyle::No,
+            })
     }
 
     fn keyboard(keystate: HashMap<char, Found>) -> Column<'static, Message> {
@@ -186,76 +190,84 @@ impl State {
             .push(create_key_row(row3))
     }
 
+    fn find_char_at_index(char: char, index: usize, target_word: &str) -> Found {
+        match target_word.find(char) {
+            Some(pos) if pos == index => Found::Correct,
+            Some(_) => Found::Almost,
+            None => Found::No,
+        }
+    }
+
+    fn match_char_by_char(word: &str, target_word: &str) -> Vec<(char, Found)> {
+        // target is like a scratchpad. when we found a char, check it off by overwriting it with ' '.
+        let word = word.chars().collect::<Vec<char>>();
+        let mut target = target_word.chars().collect::<Vec<char>>();
+        let mut corrects = Vec::new();
+        let mut almosts = Vec::new();
+
+        for (pos, char) in word.iter().enumerate() {
+            if Some(char) == target.get(pos) {
+                corrects.push(pos);
+                *target.get_mut(pos).unwrap() = ' ';
+            }
+        }
+
+        for (pos, char) in word.iter().enumerate() {
+            if corrects.contains(&pos) {
+                continue;
+            }
+            if let Some(target_pos) = target.iter().position(|c| c == char) {
+                *target.get_mut(target_pos).unwrap() = ' ';
+                almosts.push(pos);
+            }
+        }
+
+        word.into_iter()
+            .enumerate()
+            .map(|(pos, char)| {
+                let found = match corrects.contains(&pos) {
+                    true => Found::Correct,
+                    false if almosts.contains(&pos) => Found::Almost,
+                    false => Found::No,
+                };
+                (char, found)
+            })
+            .collect()
+    }
+
     fn view(&mut self) -> Column<Message> {
         let title = Self::title_label("worsd");
         let input_word = Self::input_word(&self.input_word, &mut self.input_word_state);
         let target_word = Self::target_word(&self.target_word);
 
-        let mut keystate: HashMap<char, Found> = HashMap::new();
         let entered_words = self
             .entered_words
             .iter()
             .map(|word| {
-                // target is like a scratchpad. when we found a char, check it off by overwriting it with ' '.
-                let word = word.chars().collect::<Vec<char>>();
-                let mut target = self.target_word.chars().collect::<Vec<char>>();
-                let mut corrects = Vec::new();
-                let mut almosts = Vec::new();
-
                 let mut row = Row::<Message>::new()
                     .width(Length::Shrink)
                     .spacing(15)
                     .align_items(Align::Center);
-
-                for (pos, char) in word.iter().enumerate() {
-                    if Some(char) == target.get(pos) {
-                        corrects.push(pos);
-                        *target.get_mut(pos).unwrap() = ' ';
-                    }
-                }
-
-                for (pos, char) in word.iter().enumerate() {
-                    if corrects.contains(&pos) {
-                        continue;
-                    }
-                    if let Some(target_pos) = target.iter().position(|c| c == char) {
-                        *target.get_mut(target_pos).unwrap() = ' ';
-                        almosts.push(pos);
-                    }
-                }
-
-                for (pos, char) in word.into_iter().enumerate() {
-                    let found = if corrects.contains(&pos) {
-                        Found::Correct
-                    } else if almosts.contains(&pos) {
-                        Found::Almost
-                    } else {
-                        Found::No
-                    };
-
-                    let key_state = keystate.get(&char).cloned();
-                    keystate.insert(
-                        char,
-                        match (key_state, found) {
-                            (None, _) => found,
-                            (Some(Found::Almost), Found::Correct) => found,
-                            (Some(Found::No), Found::Almost) => found,
-                            (Some(no_change), _) => no_change,
-                        },
-                    );
-
-                    let style = match found {
-                        Found::Correct => CharStyle::Correct,
-                        Found::Almost => CharStyle::Almost,
-                        Found::No => CharStyle::No,
-                    };
-
-                    row = row.push(Self::word_box(char, style));
+                for (char, found) in Self::match_char_by_char(word, &self.target_word) {
+                    row = row.push(Self::word_character_box(char, found));
                 }
                 row
             })
             .collect::<Vec<_>>();
 
+        let mut keystate: HashMap<char, Found> = HashMap::new();
+        for word in self.entered_words.iter() {
+            for (index, char) in word.char_indices() {
+                let found = Self::find_char_at_index(char, index, &self.target_word);
+                let state = match (found, keystate.get(&char)) {
+                    (Found::Correct, _) => Found::Correct,
+                    (Found::Almost, None | Some(Found::No)) => Found::Almost,
+                    (Found::No, None) => Found::No,
+                    (_, Some(state)) => *state,
+                };
+                keystate.insert(char, state);
+            }
+        }
         let keyboard = Self::keyboard(keystate);
 
         let mut column = Column::<Message>::new()
