@@ -272,19 +272,21 @@ impl State {
     }
 
     fn view(&mut self) -> Column<Message> {
-        let title = Self::title_label("worsd");
-        let input_word = Self::input_word(&self.input_word, &mut self.input_word_state);
-        let target_word = Self::target_word(&self.target_word);
-        let entered_words = Self::entered_words(&self.entered_words, &self.target_word);
-        let keyboard = Self::keyboard(Self::keystate(&self.entered_words, &self.target_word));
+        let Self {
+            input_word,
+            target_word,
+            entered_words,
+            input_word_state,
+            ..
+        } = self;
         Column::new()
             .align_items(Align::Center)
             .spacing(20)
-            .push(title)
-            .push(entered_words)
-            .push(input_word)
-            .push(keyboard)
-            .push(target_word)
+            .push(Self::title_label("worsd"))
+            .push(Self::entered_words(entered_words, target_word))
+            .push(Self::input_word(input_word, input_word_state))
+            .push(Self::keyboard(Self::keystate(entered_words, target_word)))
+            .push(Self::target_word(target_word))
     }
 
     fn update(&mut self, message: Message) {
