@@ -252,10 +252,7 @@ impl State {
         for entry in entered_words {
             column = column.push(entry);
         }
-        column
-            .push(input_word)
-            .push(target_word)
-            .push(keyboard)
+        column.push(input_word).push(target_word).push(keyboard)
     }
 
     fn update(&mut self, message: Message) {
