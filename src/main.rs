@@ -235,30 +235,22 @@ impl State {
             .collect()
     }
 
-    fn view(&mut self) -> Column<Message> {
-        let title = Self::title_label("worsd");
-        let input_word = Self::input_word(&self.input_word, &mut self.input_word_state);
-        let target_word = Self::target_word(&self.target_word);
+    fn entered_word_boxes(word: &str, target_word: &str) -> Row<'static, Message> {
+        let mut row = Row::new()
+            .width(Length::Shrink)
+            .spacing(15)
+            .align_items(Align::Center);
+        for (char, found) in Self::match_char_by_char(word, target_word) {
+            row = row.push(Self::word_character_box(char, found));
+        }
+        row
+    }
 
-        let entered_words = self
-            .entered_words
-            .iter()
-            .map(|word| {
-                let mut row = Row::<Message>::new()
-                    .width(Length::Shrink)
-                    .spacing(15)
-                    .align_items(Align::Center);
-                for (char, found) in Self::match_char_by_char(word, &self.target_word) {
-                    row = row.push(Self::word_character_box(char, found));
-                }
-                row
-            })
-            .collect::<Vec<_>>();
-
-        let mut keystate: HashMap<char, Found> = HashMap::new();
-        for word in self.entered_words.iter() {
+    fn keystate(entered_words: &[String], target_word: &str) -> HashMap<char, Found> {
+        let mut keystate = HashMap::new();
+        for word in entered_words.iter() {
             for (index, char) in word.char_indices() {
-                let found = Self::find_char_at_index(char, index, &self.target_word);
+                let found = Self::find_char_at_index(char, index, target_word);
                 let state = match (found, keystate.get(&char)) {
                     (Found::Correct, _) => Found::Correct,
                     (Found::Almost, None | Some(Found::No)) => Found::Almost,
@@ -268,16 +260,31 @@ impl State {
                 keystate.insert(char, state);
             }
         }
-        let keyboard = Self::keyboard(keystate);
+        keystate
+    }
 
-        let mut column = Column::<Message>::new()
-            .push(title)
-            .align_items(Align::Center)
-            .spacing(20);
-        for entry in entered_words {
-            column = column.push(entry);
+    fn entered_words(words: &[String], target_word: &str) -> Column<'static, Message> {
+        let mut column = Column::new().align_items(Align::Center).spacing(20);
+        for word in words.iter() {
+            column = column.push(Self::entered_word_boxes(word, target_word));
         }
-        column.push(input_word).push(target_word).push(keyboard)
+        column
+    }
+
+    fn view(&mut self) -> Column<Message> {
+        let title = Self::title_label("worsd");
+        let input_word = Self::input_word(&self.input_word, &mut self.input_word_state);
+        let target_word = Self::target_word(&self.target_word);
+        let entered_words = Self::entered_words(&self.entered_words, &self.target_word);
+        let keyboard = Self::keyboard(Self::keystate(&self.entered_words, &self.target_word));
+        Column::new()
+            .align_items(Align::Center)
+            .spacing(20)
+            .push(title)
+            .push(entered_words)
+            .push(input_word)
+            .push(keyboard)
+            .push(target_word)
     }
 
     fn update(&mut self, message: Message) {
