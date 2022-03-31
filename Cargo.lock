@@ -2739,7 +2739,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wordle"
+name = "worsd"
 version = "0.1.0"
 dependencies = [
  "iced",
