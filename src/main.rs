@@ -117,29 +117,44 @@ impl container::StyleSheet for CharStyle {
 }
 
 impl State {
-    fn view(&mut self) -> Column<Message> {
-        let title = Text::new("worsd")
+    fn title_label(label: &str) -> Text {
+        Text::new(label)
             .size(100)
             .width(Length::Fill)
-            .horizontal_alignment(iced::HorizontalAlignment::Center);
+            .horizontal_alignment(iced::HorizontalAlignment::Center)
+    }
 
-        let input_word = TextInput::new(
-            &mut self.input_word_state,
-            "",
-            &self.input_word,
-            |new_word| Message::NewWordChange(new_word),
-        )
+    fn input_word<'b>(value: &str, state: &'b mut text_input::State) -> TextInput<'b, Message> {
+        TextInput::new(state, "", value, |new_word| {
+            Message::NewWordChange(new_word)
+        })
         .padding(15)
         .size(30)
-        .on_submit(Message::NewWordSubmit);
+        .on_submit(Message::NewWordSubmit)
+    }
 
+    fn target_word(label: &str) -> Text {
         let color_gainsboro = Color::from_rgb8(220, 220, 220);
-
-        let target_word = Text::new(self.target_word.clone())
+        Text::new(label.to_string())
             .horizontal_alignment(iced::HorizontalAlignment::Center)
             .width(iced::Length::Fill)
             .color(color_gainsboro)
-            .size(20);
+            .size(20)
+    }
+
+    fn keyboard_key(char: char, style: CharStyle) -> Container<'static, Message> {
+        Container::new(Text::new(char).size(25))
+            .width(Length::Units(45))
+            .height(Length::Units(45))
+            .style(style)
+            .center_x()
+            .center_y()
+    }
+
+    fn view(&mut self) -> Column<Message> {
+        let title = Self::title_label("worsd");
+        let input_word = Self::input_word(&self.input_word, &mut self.input_word_state);
+        let target_word = Self::target_word(&self.target_word);
 
         let mut keyboard: HashMap<char, Found> = HashMap::new();
         let entered_words = self
@@ -227,14 +242,7 @@ impl State {
                     None => CharStyle::Unknown,
                 };
 
-                row = row.push(
-                    Container::<Message>::new(Text::new(char).size(25))
-                        .width(Length::Units(45))
-                        .height(Length::Units(45))
-                        .style(style)
-                        .center_x()
-                        .center_y(),
-                );
+                row = row.push(Self::keyboard_key(char, style));
             }
             row
         };
