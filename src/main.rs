@@ -151,12 +151,47 @@ impl State {
             .center_y()
     }
 
+    fn word_box(char: char, style: CharStyle) -> Container<'static, Message> {
+        Container::new(Text::new(char).size(30))
+            .height(Length::Units(60))
+            .width(Length::Units(60))
+            .center_x()
+            .center_y()
+            .style(style)
+    }
+
+    fn keyboard(keystate: HashMap<char, Found>) -> Column<'static, Message> {
+        let row1 = "qwertyuiop";
+        let row2 = "asdfghjkl";
+        let row3 = "zxcvbnm";
+        let create_key_row = |row_str: &str| {
+            let mut row = Row::new().spacing(5);
+            for char in row_str.chars() {
+                let style = match keystate.get(&char) {
+                    Some(Found::Correct) => CharStyle::Correct,
+                    Some(Found::Almost) => CharStyle::Almost,
+                    Some(Found::No) => CharStyle::No,
+                    None => CharStyle::Unknown,
+                };
+
+                row = row.push(Self::keyboard_key(char, style));
+            }
+            row
+        };
+        Column::new()
+            .align_items(Align::Center)
+            .spacing(5)
+            .push(create_key_row(row1))
+            .push(create_key_row(row2))
+            .push(create_key_row(row3))
+    }
+
     fn view(&mut self) -> Column<Message> {
         let title = Self::title_label("worsd");
         let input_word = Self::input_word(&self.input_word, &mut self.input_word_state);
         let target_word = Self::target_word(&self.target_word);
 
-        let mut keyboard: HashMap<char, Found> = HashMap::new();
+        let mut keystate: HashMap<char, Found> = HashMap::new();
         let entered_words = self
             .entered_words
             .iter()
@@ -198,8 +233,8 @@ impl State {
                         Found::No
                     };
 
-                    let key_state = keyboard.get(&char).cloned();
-                    keyboard.insert(
+                    let key_state = keystate.get(&char).cloned();
+                    keystate.insert(
                         char,
                         match (key_state, found) {
                             (None, _) => found,
@@ -215,43 +250,13 @@ impl State {
                         Found::No => CharStyle::No,
                     };
 
-                    let char_text = Text::new(char).size(30);
-                    let container = Container::new(char_text)
-                        .height(Length::Units(60))
-                        .width(Length::Units(60))
-                        .center_x()
-                        .center_y()
-                        .style(style);
-
-                    row = row.push(container);
+                    row = row.push(Self::word_box(char, style));
                 }
                 row
             })
             .collect::<Vec<_>>();
 
-        let row1 = "qwertyuiop";
-        let row2 = "asdfghjkl";
-        let row3 = "zxcvbnm";
-        let create_key_row = |row_str: &str| {
-            let mut row = Row::new().spacing(5);
-            for char in row_str.chars() {
-                let style = match keyboard.get(&char) {
-                    Some(Found::Correct) => CharStyle::Correct,
-                    Some(Found::Almost) => CharStyle::Almost,
-                    Some(Found::No) => CharStyle::No,
-                    None => CharStyle::Unknown,
-                };
-
-                row = row.push(Self::keyboard_key(char, style));
-            }
-            row
-        };
-        let keyboard = Column::new()
-            .align_items(Align::Center)
-            .spacing(5)
-            .push(create_key_row(row1))
-            .push(create_key_row(row2))
-            .push(create_key_row(row3));
+        let keyboard = Self::keyboard(keystate);
 
         let mut column = Column::<Message>::new()
             .push(title)
