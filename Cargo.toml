@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 iced = "0.3"
 rand = "0.8.5"
+minreq = { version = "2.6", features = ["https"] }
+json = "0.12"

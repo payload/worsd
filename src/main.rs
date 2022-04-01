@@ -1,3 +1,5 @@
+mod dict_service;
+
 use std::collections::HashMap;
 
 use iced::{
@@ -38,6 +40,8 @@ impl Application for State {
         } else {
             "worsd".to_string()
         };
+
+        dict_service::fetch_definition(&target_word);
 
         (
             Self {
