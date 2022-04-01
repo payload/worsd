@@ -43,7 +43,11 @@ impl Application for State {
             Self {
                 words,
                 entered_words: vec![],
-                input_word_state: text_input::State::default(),
+                input_word_state: {
+                    let mut state = text_input::State::default();
+                    state.focus();
+                    state
+                },
                 input_word: String::new(),
                 target_word,
             },
