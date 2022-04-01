@@ -83,7 +83,7 @@ enum Message {
     NewWordSubmit,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Found {
     Correct,
     Almost,
@@ -308,4 +308,25 @@ impl State {
             }
         }
     }
+}
+
+#[test]
+fn match_char_by_char() {
+    use Found::*;
+    assert_eq!(
+        State::match_char_by_char("abb", "zzb"),
+        vec![('a', No), ('b', No), ('b', Correct)]
+    );
+    assert_eq!(
+        State::match_char_by_char("aba", "zzb"),
+        vec![('a', No), ('b', Almost), ('a', No)]
+    );
+    assert_eq!(
+        State::match_char_by_char("bba", "zzb"),
+        vec![('b', Almost), ('b', No), ('a', No)]
+    );
+    assert_eq!(
+        State::match_char_by_char("bbaa", "zzbb"),
+        vec![('b', Almost), ('b', Almost), ('a', No), ('a', No)]
+    );
 }
