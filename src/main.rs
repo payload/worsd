@@ -23,21 +23,10 @@ impl Application for State {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let words = if let Ok(words) = std::fs::read_to_string("./words.txt") {
-            words
-                .split_ascii_whitespace()
-                .filter(|word| word.len() == 5)
-                .map(|word| word.to_string())
-                .collect::<Vec<_>>()
-        } else {
-            eprintln!("Could not load words.txt");
-            vec!["worsd".to_string()]
-        };
-
+        let words = load_words_file();
         assert!(words.len() > 0);
         let target_index = rand::thread_rng().gen_range(0..words.len());
         let target_word = words.get(target_index).unwrap().clone();
-
         let target_word_definitions =
             dict_service::fetch_definition(&target_word).unwrap_or_default();
         let state = Self {
@@ -350,4 +339,18 @@ fn match_char_by_char() {
             ('b', No),
         ]
     );
+}
+
+/** Returns non-empty Vec. */
+fn load_words_file() -> Vec<String> {
+    if let Ok(words) = std::fs::read_to_string("./words.txt") {
+        words
+            .split_ascii_whitespace()
+            .filter(|word| word.len() == 5)
+            .map(|word| word.to_string())
+            .collect::<Vec<_>>()
+    } else {
+        eprintln!("Could not load words.txt. Default to worsd.");
+        vec!["worsd".to_string()]
+    }
 }
