@@ -1,10 +1,16 @@
 use std::error;
 
-pub fn fetch_definition(word: &str) {
+pub fn fetch_definition(word: &str) -> Option<Vec<String>> {
     let url = format!("https://api.dictionaryapi.dev/api/v2/entries/en/{}", word);
     match fetch_definition_unhandled(&url) {
-        Ok(definitions) => println!("fetch_definition: {:?}", definitions),
-        Err(err) => eprintln!("fetch_definition: {:?}", err),
+        Ok(definitions) => {
+            println!("fetch_definition: {:?}", definitions);
+            Some(definitions)
+        }
+        Err(err) => {
+            eprintln!("fetch_definition: {:?}", err);
+            None
+        }
     }
 }
 

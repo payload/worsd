@@ -31,32 +31,29 @@ impl Application for State {
                 .collect::<Vec<_>>()
         } else {
             eprintln!("Could not load words.txt");
-            Vec::new()
+            vec!["worsd".to_string()]
         };
 
-        let target_word = if words.len() > 0 {
-            let target_index = rand::thread_rng().gen_range(0..words.len());
-            words.get(target_index).unwrap().clone()
-        } else {
-            "worsd".to_string()
-        };
+        assert!(words.len() > 0);
+        let target_index = rand::thread_rng().gen_range(0..words.len());
+        let target_word = words.get(target_index).unwrap().clone();
 
-        dict_service::fetch_definition(&target_word);
-
-        (
-            Self {
-                words,
-                entered_words: vec![],
-                input_word_state: {
-                    let mut state = text_input::State::default();
-                    state.focus();
-                    state
-                },
-                input_word: String::new(),
-                target_word,
+        let target_word_definitions =
+            dict_service::fetch_definition(&target_word).unwrap_or_default();
+        let state = Self {
+            words,
+            entered_words: vec![],
+            input_word_state: {
+                let mut state = text_input::State::default();
+                state.focus();
+                state
             },
-            Command::none(),
-        )
+            input_word: String::new(),
+            target_word,
+            _target_word_definitions: target_word_definitions,
+        };
+
+        (state, Command::none())
     }
 
     fn title(&self) -> String {
@@ -83,6 +80,7 @@ struct State {
     input_word_state: text_input::State,
     input_word: String,
     target_word: String,
+    _target_word_definitions: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
