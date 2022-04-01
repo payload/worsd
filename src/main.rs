@@ -291,7 +291,9 @@ impl State {
     fn update(&mut self, message: Message) {
         match message {
             Message::NewWordChange(new_word) => {
-                self.input_word = new_word;
+                if new_word.len() <= self.target_word.len() {
+                    self.input_word = new_word;
+                }
             }
             Message::NewWordSubmit => {
                 if self.words.contains(&self.input_word) {
