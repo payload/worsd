@@ -9,12 +9,14 @@ use iced::{
 
 use rand::prelude::*;
 
-fn main() -> Result<(), std::io::Error> {
-    if let Err(err) = State::run(Settings::default()) {
-        eprintln!("{:?}", err);
+fn main() -> Result<(), iced::Error> {
+    match State::run(Settings::default()) {
+        Err(error) => {
+            eprintln!("{:?}", error);
+            Err(error)
+        }
+        Ok(_) => Ok(()),
     }
-
-    Ok(())
 }
 
 impl Application for State {
