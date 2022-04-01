@@ -80,39 +80,6 @@ enum Message {
     NewWordSubmit,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Found {
-    Correct,
-    Almost,
-    No,
-}
-
-enum CharStyle {
-    Correct,
-    Almost,
-    No,
-    Unknown,
-}
-
-impl container::StyleSheet for CharStyle {
-    fn style(&self) -> container::Style {
-        let color_gainsboro = Color::from_rgb8(220, 220, 220);
-
-        container::Style {
-            background: Some(Background::Color(match self {
-                // Wikipedia: Shades of Green / Yellow / ...
-                CharStyle::Correct => Color::from_rgb8(50, 205, 50), // Lime Green
-                CharStyle::Almost => Color::from_rgb8(250, 218, 94), // Royal Yellow
-                CharStyle::No => Color::from_rgb8(152, 152, 152),    // Spanish Gray
-                CharStyle::Unknown => color_gainsboro,
-            })),
-            border_radius: 12.0,
-            text_color: Some(Color::BLACK),
-            ..container::Style::default()
-        }
-    }
-}
-
 impl State {
     fn title_label(label: &str) -> Text {
         Text::new(label)
@@ -139,11 +106,11 @@ impl State {
             .size(20)
     }
 
-    fn keyboard_key(char: char, style: CharStyle) -> Container<'static, Message> {
+    fn keyboard_key(char: char, found: Found) -> Container<'static, Message> {
         Container::new(Text::new(char).size(25))
             .width(Length::Units(45))
             .height(Length::Units(45))
-            .style(style)
+            .style(found)
             .center_x()
             .center_y()
     }
@@ -154,11 +121,7 @@ impl State {
             .width(Length::Units(60))
             .center_x()
             .center_y()
-            .style(match found {
-                Found::Correct => CharStyle::Correct,
-                Found::Almost => CharStyle::Almost,
-                Found::No => CharStyle::No,
-            })
+            .style(found)
     }
 
     fn keyboard(keystate: HashMap<char, Found>) -> Column<'static, Message> {
@@ -168,13 +131,7 @@ impl State {
         let create_key_row = |row_str: &str| {
             let mut row = Row::new().spacing(5);
             for char in row_str.chars() {
-                let style = match keystate.get(&char) {
-                    Some(Found::Correct) => CharStyle::Correct,
-                    Some(Found::Almost) => CharStyle::Almost,
-                    Some(Found::No) => CharStyle::No,
-                    None => CharStyle::Unknown,
-                };
-
+                let style = keystate.get(&char).copied().unwrap_or(Found::Unknown);
                 row = row.push(Self::keyboard_key(char, style));
             }
             row
@@ -248,6 +205,7 @@ impl State {
                     (Found::Almost, None | Some(Found::No)) => Found::Almost,
                     (Found::No, None) => Found::No,
                     (_, Some(state)) => *state,
+                    (Found::Unknown, None) => Found::Unknown,
                 };
                 keystate.insert(char, state);
             }
@@ -354,5 +312,31 @@ fn load_words_file() -> Vec<String> {
     } else {
         eprintln!("Could not load words.txt. Default to worsd.");
         vec!["worsd".to_string()]
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Found {
+    Correct,
+    Almost,
+    No,
+    Unknown,
+}
+
+impl container::StyleSheet for Found {
+    fn style(&self) -> container::Style {
+        use Found::*;
+        container::Style {
+            background: Some(Background::Color(match self {
+                // Wikipedia: Shades of Green / Yellow / ...
+                Correct => Color::from_rgb8(50, 205, 50), // Lime Green
+                Almost => Color::from_rgb8(250, 218, 94), // Royal Yellow
+                No => Color::from_rgb8(152, 152, 152),    // Spanish Gray
+                Unknown => Color::from_rgb8(220, 220, 220), // Gainsboro
+            })),
+            border_radius: 12.0,
+            text_color: Some(Color::BLACK),
+            ..container::Style::default()
+        }
     }
 }
