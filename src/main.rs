@@ -199,31 +199,26 @@ impl State {
     }
 
     fn match_char_by_char(word: &str, target_word: &str) -> Vec<(char, Found)> {
-        // target is like a scratchpad. when we found a char, check it off by overwriting it with ' '.
-        let word = word.chars().collect::<Vec<char>>();
-        let mut target = target_word.chars().collect::<Vec<char>>();
-        let mut corrects = Vec::new();
-        let mut almosts = Vec::new();
-
-        for (pos, char) in word.iter().enumerate() {
-            if Some(char) == target.get(pos) {
-                corrects.push(pos);
-                *target.get_mut(pos).unwrap() = ' ';
-            }
-        }
-
-        for (pos, char) in word.iter().enumerate() {
-            if corrects.contains(&pos) {
-                continue;
-            }
-            if let Some(target_pos) = target.iter().position(|c| c == char) {
-                *target.get_mut(target_pos).unwrap() = ' ';
-                almosts.push(pos);
-            }
-        }
-
-        word.into_iter()
-            .enumerate()
+        let corrects: Vec<usize> = word
+            .char_indices()
+            .zip(target_word.chars())
+            .filter_map(|((pos, actual), expected)| (actual == expected).then(|| pos))
+            .collect();
+        let mut leftovers: Vec<char> = target_word
+            .char_indices()
+            .filter_map(|(pos, char)| (!corrects.contains(&pos)).then(|| char))
+            .collect();
+        let almosts: Vec<usize> = word
+            .char_indices()
+            .filter(|(pos, _)| !corrects.contains(&pos))
+            .filter_map(|(pos, char)| {
+                leftovers.iter().position(|c| c == &char).and_then(|tpos| {
+                    leftovers.swap_remove(tpos);
+                    Some(pos)
+                })
+            })
+            .collect();
+        word.char_indices()
             .map(|(pos, char)| {
                 let found = match corrects.contains(&pos) {
                     true => Found::Correct,
@@ -328,5 +323,23 @@ fn match_char_by_char() {
     assert_eq!(
         State::match_char_by_char("bbaa", "zzbb"),
         vec![('b', Almost), ('b', Almost), ('a', No), ('a', No)]
+    );
+    assert_eq!(
+        State::match_char_by_char("abba", "zzbb"),
+        vec![('a', No), ('b', Almost), ('b', Correct), ('a', No)]
+    );
+    assert_eq!(
+        State::match_char_by_char("abbcabbab", "zzbbzcbbz"),
+        vec![
+            ('a', No),
+            ('b', Almost),
+            ('b', Correct),
+            ('c', Almost),
+            ('a', No),
+            ('b', Almost),
+            ('b', Correct),
+            ('a', No),
+            ('b', No),
+        ]
     );
 }
