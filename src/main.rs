@@ -110,7 +110,7 @@ impl container::StyleSheet for CharStyle {
                 // Wikipedia: Shades of Green / Yellow / ...
                 CharStyle::Correct => Color::from_rgb8(50, 205, 50), // Lime Green
                 CharStyle::Almost => Color::from_rgb8(250, 218, 94), // Royal Yellow
-                CharStyle::No => Color::from_rgb8(192, 192, 192),    // Silver
+                CharStyle::No => Color::from_rgb8(152, 152, 152),    // Spanish Gray
                 CharStyle::Unknown => color_gainsboro,
             })),
             border_radius: 12.0,
